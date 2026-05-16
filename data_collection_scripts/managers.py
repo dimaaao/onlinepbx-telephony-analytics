@@ -27,6 +27,7 @@ def get_key(domain, token):
     
     return key, key_id
 
+
 def get_managers(domain, key, key_id,):
     # фУНКЦИЯ ДЛЯ ПОЛУЧЕНИЯ МЕНЕДЖЕРОВ
     url = f"https://api2.onlinepbx.ru/{domain}/user/get.json"
