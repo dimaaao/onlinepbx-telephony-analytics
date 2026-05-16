@@ -1,11 +1,14 @@
+import functions_framework
 import requests
 import datetime
 import pandas as pd
 from google.cloud import bigquery
 from google.oauth2 import service_account
+import time
 
 
 def get_key(domain, token):
+    # ФУНКЦИЯ ДЛЯ ПОЛУЧЕНИЯ ТОКЕНА
     url = f"https://api2.onlinepbx.ru/{domain}/auth.json"
 
     data = {
@@ -31,7 +34,9 @@ def get_key(domain, token):
     
     return key, key_id
 
+
 def get_history_of_calls(date_start, date_end, domain, key, key_id):
+    # ФУНКЦИЯ ДЛЯ СБОРА ДАННЫХ О ЗВОНКАХ
     try:
         print("🚀 Запрос истории звонков")
         print(f"📅 Период: {date_start} → {date_end}")
@@ -106,8 +111,10 @@ def get_history_of_calls(date_start, date_end, domain, key, key_id):
         print("🔥 Ошибка в get_history_of_calls:", e)
         print(traceback.format_exc())
         return pd.DataFrame()
+        
 
 def upload_to_bigquery(data, project_id, table_id, mode):
+    # ФУНКЦИЯ ДЛЯ ЗАГРУЗКИ ДАННЫХ В BQ
     try:
         print("🚀 Начинаю загрузку в BigQuery")
 
@@ -115,9 +122,8 @@ def upload_to_bigquery(data, project_id, table_id, mode):
             print("⚠️ DataFrame пуст — загрузка отменена")
             return
 
-        credentials = service_account.Credentials.from_service_account_file("bq_service_acc.json")
-        client = bigquery.Client(credentials=credentials, project=project_id)
-        print(")))")
+        client = bigquery.Client()
+
         if mode == "append":
             write_mode = "WRITE_APPEND"
         elif mode == "truncate":
@@ -129,7 +135,12 @@ def upload_to_bigquery(data, project_id, table_id, mode):
         print(f"📊 Строк: {len(data)}")
         job_config = bigquery.LoadJobConfig(write_disposition=write_mode)
 
-        table = client.get_table(table_id)
+        job = client.load_table_from_dataframe(
+            data,
+            table_id,
+            job_config=job_config
+        )
+        job.result()
 
         print("✅ Загрузка завершена")
 
@@ -138,20 +149,61 @@ def upload_to_bigquery(data, project_id, table_id, mode):
         print("🔥 Ошибка при загрузке в BQ:", e)
         print(traceback.format_exc())
 
+# ===== Cloud Run entrypoint =====
+@functions_framework.http
+def sync_http(request):
+    try:
+        # ===== настройки =====
+        domain = "YOUR_DOMAIN.onpbx.ru"
+        token = "YOUR_TOKEN"
+        project="YOUR_PROJECT_ID"
+        table_id = "YOUR_TABLE_ID"
+        mode = "truncate"    # append или truncate
+        start = datetime.datetime(2026, 1, 1)
+        end = datetime.datetime(2026, 4, 16)
 
-# ===== настройки =====
-domain = "pbx28683.onpbx.ru"
-token = "cWU3UEFmcDc5QnNHRTVFamR4YUZCNklaYnRGUTE5aHU"
-project="adamant-490315"
-table_id = "adamant-490315.telephony.raw_history_test"
-mode = "append"    # append или truncate
-start = datetime.datetime(2026, 1, 1)
-end = datetime.datetime(2026, 4, 16)
+        # ======= main ========
+        print("🏁 Старт скрипта")
 
+        key, key_id = get_key(domain=domain, token=token)
 
-# ======= main ========
-print("🏁 Старт скрипта")
-key, key_id = get_key(domain=domain, token=token)
-data = get_history_of_calls(date_start=start, date_end=end, domain=domain, key=key, key_id=key_id)
-print("📊 Итоговые колонки:", list(data.columns))
-print(data)
+        all_data = []
+        current_start = start
+
+        while current_start < end:
+            current_end = min(current_start + datetime.timedelta(days=7), end)
+
+            print(f"📅 Запрос: {current_start} → {current_end}")
+
+            df = get_history_of_calls(
+                date_start=current_start,
+                date_end=current_end,
+                domain=domain,
+                key=key,
+                key_id=key_id
+            )
+
+            if not df.empty:
+                all_data.append(df)
+
+            current_start = current_end
+            time.sleep(1)
+
+        if all_data:
+            data = pd.concat(all_data, ignore_index=True)
+            data = data.drop_duplicates(subset=["call_id"])
+        else:
+            data = pd.DataFrame()
+
+        print("📊 Итоговые колонки:", list(data.columns))
+
+        upload_to_bigquery(data=data, project_id=project, table_id=table_id, mode=mode)
+
+        print("🏁 Скрипт завершён")
+
+        return f"OK: {len(data)} rows", 200
+
+    except Exception as e:
+        print("❌ ОШИБКА:", str(e))
+        return f"Ошибка: {str(e)}", 500
+    
