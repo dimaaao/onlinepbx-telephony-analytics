@@ -5,7 +5,7 @@ from google.oauth2 import service_account
 
 
 def get_key(domain, token):
-    
+    # ФУНКЦИЯ ДЛЯ ПОЛУЧЕНИЯ ТОКЕНА
     url = f"https://api2.onlinepbx.ru/{domain}/auth.json"
 
     data = {
@@ -28,7 +28,7 @@ def get_key(domain, token):
     return key, key_id
 
 def get_managers(domain, key, key_id,):
-    
+    # фУНКЦИЯ ДЛЯ ПОЛУЧЕНИЯ МЕНЕДЖЕРОВ
     url = f"https://api2.onlinepbx.ru/{domain}/user/get.json"
 
     headers = {
@@ -44,8 +44,8 @@ def get_managers(domain, key, key_id,):
     return df
 
 # ===== настройки =====
-domain = "pbx28683.onpbx.ru"
-token = "cWU3UEFmcDc5QnNHRTVFamR4YUZCNklaYnRGUTE5aHU"
+domain = "YOUR_DOMAIN.onpbx.ru"
+token = "YOUR_TOKEN"
 
 # ====== main ======
 key, key_id = get_key(domain, token)
