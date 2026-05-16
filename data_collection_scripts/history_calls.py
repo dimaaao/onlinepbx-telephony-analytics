@@ -148,6 +148,7 @@ def upload_to_bigquery(data, project_id, table_id, mode):
         import traceback
         print("🔥 Ошибка при загрузке в BQ:", e)
         print(traceback.format_exc())
+        
 
 # ===== Cloud Run entrypoint =====
 @functions_framework.http
