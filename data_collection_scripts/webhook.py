@@ -11,7 +11,7 @@ LOGS_TABLE = "YOUR_TABLE_ID"
 @functions_framework.http
 def webhook(request):
     try:
-        print("🟢 Запрос получен")
+        print("Запрос получен")
 
         if request.is_json:
             data = request.get_json(silent=True) or {}
@@ -27,27 +27,27 @@ def webhook(request):
         log_errors = client.insert_rows_json(LOGS_TABLE, [log_row])
 
         if log_errors:
-            print("❌ Ошибка логов:", log_errors)
+            print("Ошибка логов:", log_errors)
         else:
-            print("🧾 Лог записан")
+            print("Лог записан")
 
         if not data:
-            print("⚠️ Пустой payload")
+            print("Пустой payload")
             return ("ok", 200)
 
-        print("📦 Payload:", data)
+        print("Payload:", data)
 
         event_type = data.get("event")
 
         # фильтр событий
         if event_type != "call_end":
-            print(f"⏭️ Игнор события: {event_type}")
+            print(f"Игнор события: {event_type}")
             return ("ok", 200)
 
         call_id = data.get("uuid")
 
         if not call_id:
-            print("⚠️ Нет id — пропуск")
+            print("Нет id — пропуск")
             return ("ok", 200)
 
         # формируем строку
@@ -66,20 +66,20 @@ def webhook(request):
             "download_url": data.get("download_url")
         }
 
-        print("🧾 Подготовленная строка:", row)
+        print("Подготовленная строка:", row)
 
         # запись в BQ
         errors = client.insert_rows_json(TABLE_ID, [row])
 
         if errors:
-            print("❌ Ошибка записи в BQ:", errors)
+            print("Ошибка записи в BQ:", errors)
         else:
-            print(f"✅ Записано: call_id={call_id}")
+            print(f"Записано: call_id={call_id}")
 
         return ("ok", 200)
 
     except Exception as e:
         import traceback
-        print("🔥 КРИТИЧЕСКАЯ ОШИБКА:", e)
+        print("КРИТИЧЕСКАЯ ОШИБКА:", e)
         print(traceback.format_exc())
         return ("ok", 200)
