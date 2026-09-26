@@ -38,8 +38,8 @@ def get_key(domain, token):
 def get_history_of_calls(date_start, date_end, domain, key, key_id):
     # ФУНКЦИЯ ДЛЯ СБОРА ДАННЫХ О ЗВОНКАХ
     try:
-        print("🚀 Запрос истории звонков")
-        print(f"📅 Период: {date_start} → {date_end}")
+        print("Запрос истории звонков")
+        print(f"Период: {date_start} → {date_end}")
 
         url = f"https://api2.onlinepbx.ru/{domain}/mongo_history/search.json"
 
@@ -53,25 +53,25 @@ def get_history_of_calls(date_start, date_end, domain, key, key_id):
 
         response = requests.post(url, headers=headers, data=data)
 
-        print(f"🌐 Статус ответа: {response.status_code}")
+        print(f"Статус ответа: {response.status_code}")
         
         if response.status_code != 200:
-            print("❌ Ошибка API:", response.text)
+            print("Ошибка API:", response.text)
             return pd.DataFrame()
 
         response_json = response.json()
 
         calls = response_json.get("data", [])
 
-        print(f"📞 Получено звонков: {len(calls)}")
+        print(f"Получено звонков: {len(calls)}")
 
         if not calls:
-            print("⚠️ Нет данных")
+            print("Нет данных")
             return pd.DataFrame()
 
         df = pd.DataFrame(calls)
 
-        print(f"📊 Колонки до обработки: {list(df.columns)}")
+        print(f"Колонки до обработки: {list(df.columns)}")
 
         # переименование + выбор колонок
         df = df.rename(columns={
@@ -102,13 +102,13 @@ def get_history_of_calls(date_start, date_end, domain, key, key_id):
             ]
         ]
 
-        print("✅ Данные подготовлены")
+        print("Данные подготовлены")
 
         return df
 
     except Exception as e:
         import traceback
-        print("🔥 Ошибка в get_history_of_calls:", e)
+        print("Ошибка в get_history_of_calls:", e)
         print(traceback.format_exc())
         return pd.DataFrame()
         
@@ -116,10 +116,10 @@ def get_history_of_calls(date_start, date_end, domain, key, key_id):
 def upload_to_bigquery(data, project_id, table_id, mode):
     # ФУНКЦИЯ ДЛЯ ЗАГРУЗКИ ДАННЫХ В BQ
     try:
-        print("🚀 Начинаю загрузку в BigQuery")
+        print("Начинаю загрузку в BigQuery")
 
         if data.empty:
-            print("⚠️ DataFrame пуст — загрузка отменена")
+            print("DataFrame пуст — загрузка отменена")
             return
 
         client = bigquery.Client()
@@ -131,8 +131,8 @@ def upload_to_bigquery(data, project_id, table_id, mode):
         else:
             raise ValueError("mode должен быть append или truncate")
 
-        print(f"📦 Режим: {mode}")
-        print(f"📊 Строк: {len(data)}")
+        print(f"Режим: {mode}")
+        print(f"Строк: {len(data)}")
         job_config = bigquery.LoadJobConfig(write_disposition=write_mode)
 
         job = client.load_table_from_dataframe(
@@ -142,11 +142,11 @@ def upload_to_bigquery(data, project_id, table_id, mode):
         )
         job.result()
 
-        print("✅ Загрузка завершена")
+        print("Загрузка завершена")
 
     except Exception as e:
         import traceback
-        print("🔥 Ошибка при загрузке в BQ:", e)
+        print("Ошибка при загрузке в BQ:", e)
         print(traceback.format_exc())
         
 
@@ -174,7 +174,7 @@ def sync_http(request):
         while current_start < end:
             current_end = min(current_start + datetime.timedelta(days=7), end)
 
-            print(f"📅 Запрос: {current_start} → {current_end}")
+            print(f"Запрос: {current_start} → {current_end}")
 
             df = get_history_of_calls(
                 date_start=current_start,
@@ -196,15 +196,15 @@ def sync_http(request):
         else:
             data = pd.DataFrame()
 
-        print("📊 Итоговые колонки:", list(data.columns))
+        print("Итоговые колонки:", list(data.columns))
 
         upload_to_bigquery(data=data, project_id=project, table_id=table_id, mode=mode)
 
-        print("🏁 Скрипт завершён")
+        print("Скрипт завершён")
 
         return f"OK: {len(data)} rows", 200
 
     except Exception as e:
-        print("❌ ОШИБКА:", str(e))
+        print("ОШИБКА:", str(e))
         return f"Ошибка: {str(e)}", 500
     
