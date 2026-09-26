@@ -13,7 +13,7 @@ def get_key(domain, token):
         "new": "true"
     }
 
-    print("➡️ Запрос на получение ключей")
+    print("Запрос на получение ключей")
 
     response = requests.post(url=url, data=data, timeout=10)
     print("STATUS AUTH:", response.status_code)
@@ -39,7 +39,7 @@ def get_managers(domain, key, key_id):
         "X-PBX-AUTHENTICATION": f"{key_id}:{key}"
     }
 
-    print("➡️ Запрос менеджеров")
+    print("Запрос менеджеров")
 
     response = requests.post(url, headers=headers, timeout=10)
     print("STATUS MANAGERS:", response.status_code)
@@ -59,7 +59,7 @@ def get_managers(domain, key, key_id):
 @functions_framework.http
 def sync_http(request):
     try:
-        print("🚀 Старт функции")
+        print("Старт функции")
 
         domain = "YOUR_DOMAIN.onpbx.ru"
         token = "YOUR_TOKEN"
@@ -67,16 +67,16 @@ def sync_http(request):
 
         
         key, key_id = get_key(domain, token)
-        print("✅ Ключи получены")
+        print("Ключи получены")
 
         df = get_managers(domain, key, key_id)
         df["dt"] = datetime.utcnow().date()
 
         if df.empty:
-            print("⚠️ DataFrame пустой")
+            print("DataFrame пустой")
             return "Нет данных", 200
 
-        print("⬆️ Загружаем в BigQuery")
+        print("Загружаем в BigQuery")
 
         client = bigquery.Client()
 
@@ -91,10 +91,10 @@ def sync_http(request):
         )
         job.result()
 
-        print("✅ Загрузка завершена")
+        print("Загрузка завершена")
 
         return f"Загружено строк: {len(df)}", 200
 
     except Exception as e:
-        print("❌ ОШИБКА:", str(e))
+        print("ОШИБКА:", str(e))
         return f"Ошибка: {str(e)}", 500
